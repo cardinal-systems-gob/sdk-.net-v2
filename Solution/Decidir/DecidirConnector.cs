@@ -1,6 +1,7 @@
 ﻿using Decidir.Constants;
 using Decidir.Model;
 using Decidir.Services;
+using System;
 
 namespace Decidir
 {
@@ -15,17 +16,12 @@ namespace Decidir
         private const string request_path_validate = "/web/";
 
 
-
-        private const string endPointSandbox = request_host_sandbox + request_path_payments; // https://developers.decidir.com/api/v2/;
-        private const string endPointProduction = request_host_production + request_path_payments; //https://live.decidir.com/api/v2/;
-
-
         #endregion
 
         private string privateApiKey;
         private string publicApiKey;
-        private int ambiente;
-        private string endpoint;
+
+        private string endpoint => $"{request_host}{request_path_payments}";
         private string request_host;
 
         private string validateApiKey;
@@ -38,26 +34,34 @@ namespace Decidir
 
         public DecidirConnector(int ambiente, string privateApiKey, string publicApiKey, string validateApiKey=null, string  merchant=null )
         {
-            this.ambiente = ambiente;
-            this.privateApiKey = privateApiKey;
-            this.publicApiKey = publicApiKey;
-            this.validateApiKey = validateApiKey;
-            this.merchant = merchant;
-
             if (ambiente == Ambiente.AMBIENTE_PRODUCCION)
             {
-                this.endpoint = endPointProduction;
                 this.request_host = request_host_production;
             }
             else
             {
-                this.endpoint = endPointSandbox;
                 this.request_host = request_host_sandbox;
-
             }
 
+            this.privateApiKey = privateApiKey;
+            this.publicApiKey = publicApiKey;
+            this.validateApiKey = validateApiKey;
+            this.merchant = merchant;
             this.healthCheckService = new HealthCheck(this.endpoint);
-            this.paymentService = new Payments(this.endpoint, this.privateApiKey, this.validateApiKey, this.merchant , this.request_host);
+            this.paymentService = new Payments(this.endpoint, this.privateApiKey, this.validateApiKey, this.merchant, this.request_host);
+            this.userSiteService = new UserSite(this.endpoint, this.privateApiKey);
+            this.cardTokensService = new CardTokens(this.endpoint, this.privateApiKey);
+        }
+
+        public DecidirConnector(Uri host, string privateApiKey, string publicApiKey, string validateApiKey = null, string merchant = null)
+        {
+            this.request_host = host.AbsoluteUri.Replace(host.PathAndQuery, "");
+            this.privateApiKey = privateApiKey;
+            this.publicApiKey = publicApiKey;
+            this.validateApiKey = validateApiKey;
+            this.merchant = merchant;
+            this.healthCheckService = new HealthCheck(this.endpoint);
+            this.paymentService = new Payments(this.endpoint, this.privateApiKey, this.validateApiKey, this.merchant, this.request_host);
             this.userSiteService = new UserSite(this.endpoint, this.privateApiKey);
             this.cardTokensService = new CardTokens(this.endpoint, this.privateApiKey);
         }
